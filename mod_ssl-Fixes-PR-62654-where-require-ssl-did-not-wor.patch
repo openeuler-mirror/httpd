@@ -1,0 +1,175 @@
+From 13a0cba7b804a173499758bb696d67fac371205c Mon Sep 17 00:00:00 2001
+From: Graham Leggett <minfrin@apache.org>
+Date: Fri, 23 Nov 2018 15:10:24 +0000
+Subject: [PATCH 276/504] *) mod_ssl: Fixes PR 62654 where "require ssl" did
+ not work on HTTP/2    connections, and PR 61519 where $HTTPS was incorrect
+ for the    "SSLEngine optional" case. +1: jorton, jim, minfrin
+
+git-svn-id: https://svn.apache.org/repos/asf/httpd/httpd/branches/2.4.x@1847284 13f79535-47bb-0310-9956-ffa450edef68
+---
+ CHANGES                         |  4 ++++
+ STATUS                          | 11 -----------
+ modules/ssl/mod_ssl.c           | 16 ++--------------
+ modules/ssl/ssl_engine_kernel.c | 33 +++++++++++----------------------
+ modules/ssl/ssl_private.h       |  5 +++++
+ modules/ssl/ssl_util.c          | 17 +++++++++++++++++
+ 6 files changed, 39 insertions(+), 47 deletions(-)
+
+diff --git a/modules/ssl/mod_ssl.c b/modules/ssl/mod_ssl.c
+index 37947e78f7..9fdf9e042e 100644
+--- a/modules/ssl/mod_ssl.c
++++ b/modules/ssl/mod_ssl.c
+@@ -618,24 +618,12 @@ int ssl_init_ssl_connection(conn_rec *c, request_rec *r)
+ 
+ static const char *ssl_hook_http_scheme(const request_rec *r)
+ {
+-    SSLSrvConfigRec *sc = mySrvConfig(r->server);
+-
+-    if (sc->enabled == SSL_ENABLED_FALSE || sc->enabled == SSL_ENABLED_OPTIONAL) {
+-        return NULL;
+-    }
+-
+-    return "https";
++    return modssl_request_is_tls(r, NULL) ? "https" : NULL;
+ }
+ 
+ static apr_port_t ssl_hook_default_port(const request_rec *r)
+ {
+-    SSLSrvConfigRec *sc = mySrvConfig(r->server);
+-
+-    if (sc->enabled == SSL_ENABLED_FALSE || sc->enabled == SSL_ENABLED_OPTIONAL) {
+-        return 0;
+-    }
+-
+-    return 443;
++    return modssl_request_is_tls(r, NULL) ? 443 : 0;
+ }
+ 
+ static int ssl_hook_pre_connection(conn_rec *c, void *csd)
+diff --git a/modules/ssl/ssl_engine_kernel.c b/modules/ssl/ssl_engine_kernel.c
+index de0ffb09ef..62d5539e82 100644
+--- a/modules/ssl/ssl_engine_kernel.c
++++ b/modules/ssl/ssl_engine_kernel.c
+@@ -1342,8 +1342,7 @@ int ssl_hook_Access(request_rec *r)
+  */
+ int ssl_hook_UserCheck(request_rec *r)
+ {
+-    SSLConnRec *sslconn = myConnConfig(r->connection);
+-    SSLSrvConfigRec *sc = mySrvConfig(r->server);
++    SSLConnRec *sslconn;
+     SSLDirConfigRec *dc = myDirConfig(r);
+     char *clientdn;
+     const char *auth_line, *username, *password;
+@@ -1392,15 +1391,15 @@ int ssl_hook_UserCheck(request_rec *r)
+ 
+     /*
+      * We decline operation in various situations...
++     * - TLS not enabled
++     * - client did not present a certificate
+      * - SSLOptions +FakeBasicAuth not configured
+      * - r->user already authenticated
+-     * - ssl not enabled
+-     * - client did not present a certificate
+      */
+-    if (!((sc->enabled == SSL_ENABLED_TRUE || sc->enabled == SSL_ENABLED_OPTIONAL)
+-          && sslconn && sslconn->ssl && sslconn->client_cert) ||
+-        !(dc->nOptions & SSL_OPT_FAKEBASICAUTH) || r->user)
+-    {
++    if (!modssl_request_is_tls(r, &sslconn)
++        || !sslconn->client_cert
++        || !(dc->nOptions & SSL_OPT_FAKEBASICAUTH)
++        || r->user) {
+         return DECLINED;
+     }
+ 
+@@ -1500,8 +1499,6 @@ static const char *const ssl_hook_Fixup_vars[] = {
+ 
+ int ssl_hook_Fixup(request_rec *r)
+ {
+-    SSLConnRec *sslconn = myConnConfig(r->connection);
+-    SSLSrvConfigRec *sc = mySrvConfig(r->server);
+     SSLDirConfigRec *dc = myDirConfig(r);
+     apr_table_t *env = r->subprocess_env;
+     char *var, *val = "";
+@@ -1509,19 +1506,14 @@ int ssl_hook_Fixup(request_rec *r)
+     const char *servername;
+ #endif
+     STACK_OF(X509) *peer_certs;
++    SSLConnRec *sslconn;
+     SSL *ssl;
+     int i;
+ 
+-    if (!(sslconn && sslconn->ssl) && r->connection->master) {
+-        sslconn = myConnConfig(r->connection->master);
+-    }
+-
+-    /*
+-     * Check to see if SSL is on
+-     */
+-    if (!(((sc->enabled == SSL_ENABLED_TRUE) || (sc->enabled == SSL_ENABLED_OPTIONAL)) && sslconn && (ssl = sslconn->ssl))) {
++    if (!modssl_request_is_tls(r, &sslconn)) {
+         return DECLINED;
+     }
++    ssl = sslconn->ssl;
+ 
+     /*
+      * Annotate the SSI/CGI environment with standard SSL information
+@@ -1595,10 +1587,7 @@ static authz_status ssl_authz_require_ssl_check(request_rec *r,
+                                                 const char *require_line,
+                                                 const void *parsed)
+ {
+-    SSLConnRec *sslconn = myConnConfig(r->connection);
+-    SSL *ssl = sslconn ? sslconn->ssl : NULL;
+-
+-    if (ssl)
++    if (modssl_request_is_tls(r, NULL))
+         return AUTHZ_GRANTED;
+     else
+         return AUTHZ_DENIED;
+diff --git a/modules/ssl/ssl_private.h b/modules/ssl/ssl_private.h
+index 160640384d..f46814d0ad 100644
+--- a/modules/ssl/ssl_private.h
++++ b/modules/ssl/ssl_private.h
+@@ -1101,6 +1101,11 @@ void ssl_init_ocsp_certificates(server_rec *s, modssl_ctx_t *mctx);
+  * memory. */
+ DH *modssl_get_dh_params(unsigned keylen);
+ 
++/* Returns non-zero if the request was made over SSL/TLS.  If sslconn
++ * is non-NULL and the request is using SSL/TLS, sets *sslconn to the
++ * corresponding SSLConnRec structure for the connection. */
++int modssl_request_is_tls(const request_rec *r, SSLConnRec **sslconn);
++
+ int ssl_is_challenge(conn_rec *c, const char *servername, 
+                      X509 **pcert, EVP_PKEY **pkey);
+ 
+diff --git a/modules/ssl/ssl_util.c b/modules/ssl/ssl_util.c
+index c372044bbb..0d23465e87 100644
+--- a/modules/ssl/ssl_util.c
++++ b/modules/ssl/ssl_util.c
+@@ -100,6 +100,23 @@ BOOL ssl_util_vhost_matches(const char *servername, server_rec *s)
+     return FALSE;
+ }
+ 
++int modssl_request_is_tls(const request_rec *r, SSLConnRec **scout)
++{
++    SSLConnRec *sslconn = myConnConfig(r->connection);
++    SSLSrvConfigRec *sc = mySrvConfig(r->server);
++
++    if (!(sslconn && sslconn->ssl) && r->connection->master) {
++        sslconn = myConnConfig(r->connection->master);
++    }
++
++    if (sc->enabled == SSL_ENABLED_FALSE || !sslconn || !sslconn->ssl)
++        return 0;
++    
++    if (scout) *scout = sslconn;
++
++    return 1;
++}
++
+ apr_file_t *ssl_util_ppopen(server_rec *s, apr_pool_t *p, const char *cmd,
+                             const char * const *argv)
+ {
+-- 
+2.19.1
+

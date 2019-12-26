@@ -1,0 +1,65 @@
+From c0b11e0ba834665b87eaa59ff544a3552d5f46e8 Mon Sep 17 00:00:00 2001
+From: "William A. Rowe Jr" <wrowe@apache.org>
+Date: Wed, 16 Jan 2019 17:06:07 +0000
+Subject: [PATCH 330/504] mod_ssl (ssl_engine_io.c: bio_filter_out_write,
+ bio_filter_in_read) Clear retry flags before aborting on client-initiated
+ reneg.
+
+PR: 63052
+Backports: r1850946
+Submitted by: Joe Orton
+Reviewed by: wrowe, jorton, rpluem
+
+
+git-svn-id: https://svn.apache.org/repos/asf/httpd/httpd/branches/2.4.x@1851471 13f79535-47bb-0310-9956-ffa450edef68
+---
+ CHANGES                     |  3 +++
+ STATUS                      |  6 ------
+ modules/ssl/ssl_engine_io.c | 12 ++++--------
+ 3 files changed, 7 insertions(+), 14 deletions(-)
+
+diff --git a/modules/ssl/ssl_engine_io.c b/modules/ssl/ssl_engine_io.c
+index b398363b1c..6da8f10118 100644
+--- a/modules/ssl/ssl_engine_io.c
++++ b/modules/ssl/ssl_engine_io.c
+@@ -200,18 +200,14 @@ static int bio_filter_out_write(BIO *bio, const char *in, int inl)
+     apr_bucket *e;
+     int need_flush;
+ 
++    BIO_clear_retry_flags(bio);
++
+     /* Abort early if the client has initiated a renegotiation. */
+     if (outctx->filter_ctx->config->reneg_state == RENEG_ABORT) {
+         outctx->rc = APR_ECONNABORTED;
+         return -1;
+     }
+ 
+-    /* when handshaking we'll have a small number of bytes.
+-     * max size SSL will pass us here is about 16k.
+-     * (16413 bytes to be exact)
+-     */
+-    BIO_clear_retry_flags(bio);
+-
+     /* Use a transient bucket for the output data - any downstream
+      * filter must setaside if necessary. */
+     e = apr_bucket_transient_create(in, inl, outctx->bb->bucket_alloc);
+@@ -458,14 +454,14 @@ static int bio_filter_in_read(BIO *bio, char *in, int inlen)
+     if (!in)
+         return 0;
+ 
++    BIO_clear_retry_flags(bio);
++
+     /* Abort early if the client has initiated a renegotiation. */
+     if (inctx->filter_ctx->config->reneg_state == RENEG_ABORT) {
+         inctx->rc = APR_ECONNABORTED;
+         return -1;
+     }
+ 
+-    BIO_clear_retry_flags(bio);
+-
+     if (!inctx->bb) {
+         inctx->rc = APR_EOF;
+         return -1;
+-- 
+2.19.1
+

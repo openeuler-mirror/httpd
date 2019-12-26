@@ -1,0 +1,397 @@
+From fd0648f226ecbc38917ccb076a2147e206d73c8b Mon Sep 17 00:00:00 2001
+From: Jim Jagielski <jim@apache.org>
+Date: Wed, 15 Aug 2018 15:01:08 +0000
+Subject: [PATCH 075/504] Merge r1418761, r1418765, r1510295, r1757147,
+ r1805163, r1818924, r1827374, r1831772, r1832351, r1832951, r1815004 from
+ trunk:
+
+Don't claim "BIO dump follows" if it is not logged due to log level config.
+
+
+make ssl_io_data_dump respect per-conn loglevel
+
+
+add high trace level log messages for debugging buffering and write completion
+
+
+* modules/ssl/ssl_engine_kernel.c (ssl_callback_SessionTicket): Fail
+  if RAND_bytes() fails; possible per API, although not in practice
+  with the OpenSSL implementation.
+
+
+Fix typo in log message.
+
+
+ap_add_common_vars(): use apr_pstrmemdup().
+
+This avoids a transient replacement/restore of '?' by '\0' in r->filename.
+
+
+Use 'ap_request_has_body()' instead of duplicating its implemenation.
+
+The logic in 'ap_request_has_body()' is:
+    has_body = (!r->header_only
+                && (r->kept_body
+                    || apr_table_get(r->headers_in, "Transfer-Encoding")
+                    || ( (cls = apr_table_get(r->headers_in, "Content-Length"))
+                        && (apr_strtoff(&cl, cls, &estr, 10) == APR_SUCCESS)
+                        && (!*estr)
+                        && (cl > 0) )
+                    )
+                );
+So the test is slighly different from the original code. (but this looks fine to me)
+
+This also has the advantage to avoid a redundant call to 'apr_table_get()' and to improve readability.
+
+While at it, move the test '!r->expecting_100' a few lines above because it is cheap.
+
+PR62368: Print the unparsed URI in AH03454
+
+... to include r->args and get otherwise get as close to possible to
+what came in over the wire.
+
+Submitted By: Hank Ibell <hwibell gmail.com>
+Committed By: covener
+
+
+
+
+All error handling paths of this function call 'apr_brigade_destroy()' , except this one.
+So add it here too.
+
+Probably spotted with the help of the Coccinelle software (Thx Julia for the patch and for Coccinelle)
+
+See PR 53016
+
+* modules/proxy/proxy_util.c (ap_proxy_share_worker): Skip creating subpool
+  for debugging unless debug-level logging is enabled.  No functional change.
+
+
+mod_watchdog: Correct some log messages and fix
+compiler warning
+"'rv' may be used uninitialized in this function".
+
+Follow up to r1722154.
+
+Submitted by: sf, jorton, jorton, ylavic, jailletc36, covener, jailletc36, jorton, rjung
+Reviewed by: jailletc36, jim, jorton
+
+
+git-svn-id: https://svn.apache.org/repos/asf/httpd/httpd/branches/2.4.x@1838103 13f79535-47bb-0310-9956-ffa450edef68
+---
+ CHANGES                         |  2 ++
+ STATUS                          | 26 ---------------------
+ modules/core/mod_watchdog.c     | 10 +++++----
+ modules/proxy/mod_proxy_ajp.c   |  1 +
+ modules/proxy/proxy_util.c      |  3 ++-
+ modules/ssl/ssl_engine_io.c     | 31 ++++++++++++++++---------
+ modules/ssl/ssl_engine_kernel.c | 12 +++++-----
+ server/core_filters.c           | 40 ++++++++++++++++++++++++++++++---
+ server/protocol.c               |  2 +-
+ server/util_script.c            |  5 ++---
+ 10 files changed, 77 insertions(+), 55 deletions(-)
+
+diff --git a/modules/core/mod_watchdog.c b/modules/core/mod_watchdog.c
+index b6deaba306..61f4675252 100644
+--- a/modules/core/mod_watchdog.c
++++ b/modules/core/mod_watchdog.c
+@@ -534,11 +534,13 @@ static int wd_post_config_hook(apr_pool_t *pconf, apr_pool_t *plog,
+                                                   w->name, s,
+                                                   wd_server_conf->pool, 0);
+                         if (rv != APR_SUCCESS) {
++                            ap_log_error(APLOG_MARK, APLOG_CRIT, rv, s, APLOGNO(10095)
++                                         "Watchdog: Failed to create singleton mutex.");
+                             return rv;
+                         }
++                        ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, s, APLOGNO(02979)
++                                "Watchdog: Created singleton mutex (%s).", w->name);
+                     }
+-                    ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, s, APLOGNO(02979)
+-                            "Watchdog: Created child worker thread (%s).", w->name);
+                     wd_server_conf->child_workers++;
+                 }
+             }
+@@ -580,12 +582,12 @@ static void wd_child_init_hook(apr_pool_t *p, server_rec *s)
+                  */
+                 if ((rv = wd_startup(w, wd_server_conf->pool)) != APR_SUCCESS) {
+                     ap_log_error(APLOG_MARK, APLOG_CRIT, rv, s, APLOGNO(01573)
+-                                 "Watchdog: Failed to create worker thread.");
++                                 "Watchdog: Failed to create child worker thread.");
+                     /* No point to continue */
+                     return;
+                 }
+                 ap_log_error(APLOG_MARK, APLOG_DEBUG, rv, s, APLOGNO(02981)
+-                             "Watchdog: Created worker thread (%s).", wn[i].provider_name);
++                             "Watchdog: Created child worker thread (%s).", wn[i].provider_name);
+             }
+         }
+     }
+diff --git a/modules/proxy/mod_proxy_ajp.c b/modules/proxy/mod_proxy_ajp.c
+index 8669db6308..73716aff51 100644
+--- a/modules/proxy/mod_proxy_ajp.c
++++ b/modules/proxy/mod_proxy_ajp.c
+@@ -322,6 +322,7 @@ static int ap_proxy_ajp_request(apr_pool_t *p, request_rec *r,
+              * Close it to clean things up.
+              */
+             conn->close = 1;
++            apr_brigade_destroy(input_brigade);
+             return HTTP_BAD_REQUEST;
+         }
+     }
+diff --git a/modules/proxy/proxy_util.c b/modules/proxy/proxy_util.c
+index 7b76144ba7..2bd0edbfbc 100644
+--- a/modules/proxy/proxy_util.c
++++ b/modules/proxy/proxy_util.c
+@@ -1879,7 +1879,8 @@ PROXY_DECLARE(apr_status_t) ap_proxy_share_worker(proxy_worker *worker, proxy_wo
+     }
+     worker->s = shm;
+     worker->s->index = i;
+-    {
++
++    if (APLOGdebug(ap_server_conf)) {
+         apr_pool_t *pool;
+         apr_pool_create(&pool, ap_server_conf->process->pool);
+         ap_log_error(APLOG_MARK, APLOG_DEBUG, 0, ap_server_conf, APLOGNO(02338)
+diff --git a/modules/ssl/ssl_engine_io.c b/modules/ssl/ssl_engine_io.c
+index 1a47b0e982..d52d5e30ca 100644
+--- a/modules/ssl/ssl_engine_io.c
++++ b/modules/ssl/ssl_engine_io.c
+@@ -877,6 +877,8 @@ static apr_status_t ssl_filter_write(ap_filter_t *f,
+              */
+             outctx->c->cs->sense = CONN_SENSE_WANT_READ;
+             outctx->rc = APR_EAGAIN;
++            ap_log_cerror(APLOG_MARK, APLOG_TRACE6, 0, outctx->c,
++                          "Want read during nonblocking write");
+         }
+         else if (ssl_err == SSL_ERROR_SYSCALL) {
+             ap_log_cerror(APLOG_MARK, APLOG_INFO, outctx->rc, c, APLOGNO(01993)
+@@ -2071,6 +2073,8 @@ void ssl_io_filter_init(conn_rec *c, request_rec *r, SSL *ssl)
+     /* write is non blocking for the benefit of async mpm */
+     if (c->cs) {
+         BIO_set_nbio(filter_ctx->pbioWrite, 1);
++        ap_log_cerror(APLOG_MARK, APLOG_TRACE6, 0, c,
++                      "Enabling non-blocking writes");
+     }
+ 
+     ssl_io_input_add_filter(filter_ctx, c, r, ssl);
+@@ -2114,9 +2118,8 @@ void ssl_io_filter_register(apr_pool_t *p)
+ 
+ #define DUMP_WIDTH 16
+ 
+-static void ssl_io_data_dump(server_rec *s,
+-                             const char *b,
+-                             long len)
++static void ssl_io_data_dump(conn_rec *c, server_rec *s,
++                             const char *b, long len)
+ {
+     char buf[256];
+     char tmp[64];
+@@ -2129,7 +2132,7 @@ static void ssl_io_data_dump(server_rec *s,
+     rows = (len / DUMP_WIDTH);
+     if ((rows * DUMP_WIDTH) < len)
+         rows++;
+-    ap_log_error(APLOG_MARK, APLOG_TRACE7, 0, s,
++    ap_log_cserror(APLOG_MARK, APLOG_TRACE7, 0, c, s,
+             "+-------------------------------------------------------------------------+");
+     for(i = 0 ; i< rows; i++) {
+ #if APR_CHARSET_EBCDIC
+@@ -2168,12 +2171,12 @@ static void ssl_io_data_dump(server_rec *s,
+             }
+         }
+         apr_cpystrn(buf+strlen(buf), " |", sizeof(buf)-strlen(buf));
+-        ap_log_error(APLOG_MARK, APLOG_TRACE7, 0, s, "%s", buf);
++        ap_log_cserror(APLOG_MARK, APLOG_TRACE7, 0, c, s, "%s", buf);
+     }
+     if (trunc > 0)
+-        ap_log_error(APLOG_MARK, APLOG_TRACE7, 0, s,
++        ap_log_cserror(APLOG_MARK, APLOG_TRACE7, 0, c, s,
+                 "| %04ld - <SPACES/NULS>", len + trunc);
+-    ap_log_error(APLOG_MARK, APLOG_TRACE7, 0, s,
++    ap_log_cserror(APLOG_MARK, APLOG_TRACE7, 0, c, s,
+             "+-------------------------------------------------------------------------+");
+     return;
+ }
+@@ -2195,15 +2198,21 @@ long ssl_io_data_cb(BIO *bio, int cmd,
+     if (   cmd == (BIO_CB_WRITE|BIO_CB_RETURN)
+         || cmd == (BIO_CB_READ |BIO_CB_RETURN) ) {
+         if (rc >= 0) {
++            const char *dump = "";
++            if (APLOG_CS_IS_LEVEL(c, s, APLOG_TRACE7)) {
++                if (argp != NULL)
++                    dump = "(BIO dump follows)";
++                else
++                    dump = "(Oops, no memory buffer?)";
++            }
+             ap_log_cserror(APLOG_MARK, APLOG_TRACE4, 0, c, s,
+                     "%s: %s %ld/%d bytes %s BIO#%pp [mem: %pp] %s",
+                     MODSSL_LIBRARY_NAME,
+                     (cmd == (BIO_CB_WRITE|BIO_CB_RETURN) ? "write" : "read"),
+                     rc, argi, (cmd == (BIO_CB_WRITE|BIO_CB_RETURN) ? "to" : "from"),
+-                    bio, argp,
+-                    (argp != NULL ? "(BIO dump follows)" : "(Oops, no memory buffer?)"));
+-            if ((argp != NULL) && APLOG_CS_IS_LEVEL(c, s, APLOG_TRACE7))
+-                ssl_io_data_dump(s, argp, rc);
++                    bio, argp, dump);
++            if (*dump != '\0' && argp != NULL)
++                ssl_io_data_dump(c, s, argp, rc);
+         }
+         else {
+             ap_log_cserror(APLOG_MARK, APLOG_TRACE4, 0, c, s,
+diff --git a/modules/ssl/ssl_engine_kernel.c b/modules/ssl/ssl_engine_kernel.c
+index e34fc55fa2..9a89ff9da8 100644
+--- a/modules/ssl/ssl_engine_kernel.c
++++ b/modules/ssl/ssl_engine_kernel.c
+@@ -839,10 +839,8 @@ int ssl_hook_Access(request_rec *r)
+      * request body, and then to reinject that request body later.
+      */
+     if (renegotiate && !renegotiate_quick
+-        && (apr_table_get(r->headers_in, "transfer-encoding")
+-            || (apr_table_get(r->headers_in, "content-length")
+-                && strcmp(apr_table_get(r->headers_in, "content-length"), "0")))
+-        && !r->expecting_100) {
++        && !r->expecting_100
++        && ap_request_has_body(r)) {
+         int rv;
+         apr_size_t rsize;
+ 
+@@ -2162,7 +2160,7 @@ static apr_status_t init_vhost(conn_rec *c, SSL *ssl)
+                 
+                 if (SSL_check_private_key(ssl) < 1) {
+                     ap_log_cerror(APLOG_MARK, APLOG_WARNING, 0, c, APLOGNO(10088)
+-                                  "Challenbge certificate and private key %s "
++                                  "Challenge certificate and private key %s "
+                                   "do not match", servername);
+                     return APR_EGENERAL;
+                 }
+@@ -2334,7 +2332,9 @@ int ssl_callback_SessionTicket(SSL *ssl,
+         }
+ 
+         memcpy(keyname, ticket_key->key_name, 16);
+-        RAND_bytes(iv, EVP_MAX_IV_LENGTH);
++        if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) != 1) {
++            return -1;
++        }
+         EVP_EncryptInit_ex(cipher_ctx, EVP_aes_128_cbc(), NULL,
+                            ticket_key->aes_key, iv);
+         HMAC_Init_ex(hctx, ticket_key->hmac_secret, 16, tlsext_tick_md(), NULL);
+diff --git a/server/core_filters.c b/server/core_filters.c
+index ddc2ff7f0f..a6c2bd666b 100644
+--- a/server/core_filters.c
++++ b/server/core_filters.c
+@@ -378,6 +378,7 @@ apr_status_t ap_core_output_filter(ap_filter_t *f, apr_bucket_brigade *new_bb)
+     apr_size_t bytes_in_brigade, non_file_bytes_in_brigade;
+     int eor_buckets_in_brigade, morphing_bucket_in_brigade;
+     apr_status_t rv;
++    int loglevel = ap_get_conn_module_loglevel(c, APLOG_MODULE_INDEX);
+ 
+     /* Fail quickly if the connection has already been aborted. */
+     if (c->aborted) {
+@@ -513,7 +514,7 @@ apr_status_t ap_core_output_filter(ap_filter_t *f, apr_bucket_brigade *new_bb)
+             || eor_buckets_in_brigade > MAX_REQUESTS_IN_PIPELINE) {
+             /* this segment of the brigade MUST be sent before returning. */
+ 
+-            if (APLOGctrace6(c)) {
++            if (loglevel >= APLOG_TRACE6) {
+                 char *reason = APR_BUCKET_IS_FLUSH(bucket) ?
+                                "FLUSH bucket" :
+                                (non_file_bytes_in_brigade >= THRESHOLD_MAX_BUFFER) ?
+@@ -521,8 +522,17 @@ apr_status_t ap_core_output_filter(ap_filter_t *f, apr_bucket_brigade *new_bb)
+                                morphing_bucket_in_brigade ? "morphing bucket" :
+                                "MAX_REQUESTS_IN_PIPELINE";
+                 ap_log_cerror(APLOG_MARK, APLOG_TRACE6, 0, c,
+-                              "core_output_filter: flushing because of %s",
+-                              reason);
++                              "will flush because of %s", reason);
++                ap_log_cerror(APLOG_MARK, APLOG_TRACE8, 0, c,
++                              "seen in brigade%s: bytes: %" APR_SIZE_T_FMT
++                              ", non-file bytes: %" APR_SIZE_T_FMT ", eor "
++                              "buckets: %d, morphing buckets: %d",
++                              flush_upto == NULL ? " so far"
++                                                 : " since last flush point",
++                              bytes_in_brigade,
++                              non_file_bytes_in_brigade,
++                              eor_buckets_in_brigade,
++                              morphing_bucket_in_brigade);
+             }
+             /*
+              * Defer the actual blocking write to avoid doing many writes.
+@@ -539,6 +549,10 @@ apr_status_t ap_core_output_filter(ap_filter_t *f, apr_bucket_brigade *new_bb)
+     if (flush_upto != NULL) {
+         ctx->tmp_flush_bb = apr_brigade_split_ex(bb, flush_upto,
+                                                  ctx->tmp_flush_bb);
++        if (loglevel >= APLOG_TRACE8) {
++                ap_log_cerror(APLOG_MARK, APLOG_TRACE8, 0, c,
++                              "flushing now");
++        }
+         rv = send_brigade_blocking(net->client_socket, bb,
+                                    &(ctx->bytes_written), c);
+         if (rv != APR_SUCCESS) {
+@@ -549,9 +563,23 @@ apr_status_t ap_core_output_filter(ap_filter_t *f, apr_bucket_brigade *new_bb)
+             c->aborted = 1;
+             return rv;
+         }
++        if (loglevel >= APLOG_TRACE8) {
++                ap_log_cerror(APLOG_MARK, APLOG_TRACE8, 0, c,
++                              "total bytes written: %" APR_SIZE_T_FMT,
++                              ctx->bytes_written);
++        }
+         APR_BRIGADE_CONCAT(bb, ctx->tmp_flush_bb);
+     }
+ 
++    if (loglevel >= APLOG_TRACE8) {
++        ap_log_cerror(APLOG_MARK, APLOG_TRACE8, 0, c,
++                      "brigade contains: bytes: %" APR_SIZE_T_FMT
++                      ", non-file bytes: %" APR_SIZE_T_FMT
++                      ", eor buckets: %d, morphing buckets: %d",
++                      bytes_in_brigade, non_file_bytes_in_brigade,
++                      eor_buckets_in_brigade, morphing_bucket_in_brigade);
++    }
++
+     if (bytes_in_brigade >= THRESHOLD_MIN_WRITE) {
+         rv = send_brigade_nonblocking(net->client_socket, bb,
+                                       &(ctx->bytes_written), c);
+@@ -563,6 +591,12 @@ apr_status_t ap_core_output_filter(ap_filter_t *f, apr_bucket_brigade *new_bb)
+             c->aborted = 1;
+             return rv;
+         }
++        if (loglevel >= APLOG_TRACE8) {
++                ap_log_cerror(APLOG_MARK, APLOG_TRACE8, 0, c,
++                              "tried nonblocking write, total bytes "
++                              "written: %" APR_SIZE_T_FMT,
++                              ctx->bytes_written);
++        }
+     }
+ 
+     setaside_remaining_output(f, ctx, bb, c);
+diff --git a/server/protocol.c b/server/protocol.c
+index 708160f30b..2ca6b124a8 100644
+--- a/server/protocol.c
++++ b/server/protocol.c
+@@ -894,7 +894,7 @@ rrl_done:
+         else if (deferred_error == rrl_baduri)
+             ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, APLOGNO(03454)
+                           "HTTP Request Line; URI incorrectly encoded: '%.*s'",
+-                          field_name_len(r->uri), r->uri);
++                          field_name_len(r->unparsed_uri), r->unparsed_uri);
+         else if (deferred_error == rrl_badwhitespace)
+             ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, APLOGNO(03447)
+                           "HTTP Request Line; Invalid whitespace");
+diff --git a/server/util_script.c b/server/util_script.c
+index 4121ae0aec..599ba58e71 100644
+--- a/server/util_script.c
++++ b/server/util_script.c
+@@ -260,9 +260,8 @@ AP_DECLARE(void) ap_add_common_vars(request_rec *r)
+     apr_table_addn(e, "CONTEXT_DOCUMENT_ROOT", ap_context_document_root(r));
+     apr_table_addn(e, "SERVER_ADMIN", s->server_admin); /* Apache */
+     if (apr_table_get(r->notes, "proxy-noquery") && (q = ap_strchr(r->filename, '?'))) {
+-        *q = '\0';
+-        apr_table_addn(e, "SCRIPT_FILENAME", apr_pstrdup(r->pool, r->filename));
+-        *q = '?';
++        char *script_filename = apr_pstrmemdup(r->pool, r->filename, q - r->filename);
++        apr_table_addn(e, "SCRIPT_FILENAME", script_filename);
+     }
+     else {
+         apr_table_addn(e, "SCRIPT_FILENAME", r->filename);  /* Apache */
+-- 
+2.19.1
+

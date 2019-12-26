@@ -1,0 +1,37 @@
+From f68b1efc6b4fb2c072d95e1ea6c74c98ff85b2b2 Mon Sep 17 00:00:00 2001
+From: "William A. Rowe Jr" <wrowe@apache.org>
+Date: Wed, 16 Jan 2019 16:37:41 +0000
+Subject: [PATCH 329/504] mod_negotiation: LanguagePriority tags must be
+ treated case-insensitive, per
+ https://tools.ietf.org/html/rfc7231#section-3.1.3.1
+
+PR: 39730
+Backports: r1850989
+Submitted by: jailletc36
+Reviewed by: jailletc36, wrowe, jim
+
+
+
+git-svn-id: https://svn.apache.org/repos/asf/httpd/httpd/branches/2.4.x@1851468 13f79535-47bb-0310-9956-ffa450edef68
+---
+ CHANGES                           | 3 +++
+ STATUS                            | 6 ------
+ modules/mappers/mod_negotiation.c | 2 +-
+ 3 files changed, 4 insertions(+), 7 deletions(-)
+
+diff --git a/modules/mappers/mod_negotiation.c b/modules/mappers/mod_negotiation.c
+index 3f04d83ddf..b6dfedc6c0 100644
+--- a/modules/mappers/mod_negotiation.c
++++ b/modules/mappers/mod_negotiation.c
+@@ -1459,7 +1459,7 @@ static int find_lang_index(apr_array_header_t *accept_langs, char *lang)
+     alang = (const char **) accept_langs->elts;
+ 
+     for (i = 0; i < accept_langs->nelts; ++i) {
+-        if (!strncmp(lang, *alang, strlen(*alang))) {
++        if (!ap_cstr_casecmpn(lang, *alang, strlen(*alang))) {
+             return i;
+         }
+         alang += (accept_langs->elt_size / sizeof(char*));
+-- 
+2.19.1
+

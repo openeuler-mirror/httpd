@@ -1,0 +1,40 @@
+From 5b0b68bdfd5a9ac5def45402723d32c5bd39cd8f Mon Sep 17 00:00:00 2001
+From: Rainer Jung <rjung@apache.org>
+Date: Thu, 18 Oct 2018 10:03:52 +0000
+Subject: [PATCH 237/504] mod_ssl: We need to get the SSL_CTX for further
+ processing down below.
+
+This fixes a crash during SSL renegotiation with OptRenegotiate set,
+when client certificates are available from the original handshake
+but were originally not verified and should get verified now.
+This is a regression in 2.4.36 (unreleased).
+
+Backport of r1828793 from trunk.
+
+Submitted by: rjung
+Reviewed by: rjung, rpluem, jorton
+
+
+git-svn-id: https://svn.apache.org/repos/asf/httpd/httpd/branches/2.4.x@1844223 13f79535-47bb-0310-9956-ffa450edef68
+---
+ CHANGES                         | 5 +++++
+ STATUS                          | 5 -----
+ modules/ssl/ssl_engine_kernel.c | 2 +-
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/modules/ssl/ssl_engine_kernel.c b/modules/ssl/ssl_engine_kernel.c
+index 6cd0da527f..de0ffb09ef 100644
+--- a/modules/ssl/ssl_engine_kernel.c
++++ b/modules/ssl/ssl_engine_kernel.c
+@@ -485,7 +485,7 @@ static int ssl_hook_Access_classic(request_rec *r, SSLSrvConfigRec *sc, SSLDirCo
+ {
+     server_rec *handshakeserver = sslconn ? sslconn->server : NULL;
+     SSLSrvConfigRec *hssc       = handshakeserver? mySrvConfig(handshakeserver) : NULL;
+-    SSL_CTX *ctx = NULL;
++    SSL_CTX *ctx = ssl ? SSL_get_SSL_CTX(ssl) : NULL;
+     BOOL renegotiate = FALSE, renegotiate_quick = FALSE;
+     X509 *peercert;
+     X509_STORE *cert_store = NULL;
+-- 
+2.19.1
+

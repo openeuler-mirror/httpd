@@ -1,0 +1,143 @@
+From 0dcd178c561f3293775a3d5953c764d64a5af233 Mon Sep 17 00:00:00 2001
+From: Joe Orton <jorton@apache.org>
+Date: Wed, 20 Mar 2019 15:50:44 +0000
+Subject: [PATCH 475/504] Merge r1855646, r1855748 from trunk:
+
+mod_proxy/ssl: cleanup per-request SSL configuration for recycled proxy conns.
+
+The SSL dir config of proxy/backend connections is stored in r->per_dir_config
+but those connections have a lifetime independent of the requests they handle.
+
+So we need to allow the external ssl_engine_set() function to reset mod_ssl's
+dir config in between proxy requests, or the first sslconn->dc could be used
+after free for the next requests.
+
+mod_proxy can then reset/reinit the request config when recycling its backend
+connections.
+
+* Solve a chicken and egg problem here:
+  We need to have sslconn->dc set correctly when we want to
+  init sslconn, but we need to allocate memory for it first.
+
+PR 63256.
+Submitted by: ylavic, rpluem
+Reviewed by: ylavic, jorton, jim
+
+
+git-svn-id: https://svn.apache.org/repos/asf/httpd/httpd/branches/2.4.x@1855918 13f79535-47bb-0310-9956-ffa450edef68
+---
+ CHANGES                    |  4 ++++
+ modules/proxy/proxy_util.c | 13 +++++++++++++
+ modules/ssl/mod_ssl.c      | 38 ++++++++++++++++++++++++--------------
+ 3 files changed, 41 insertions(+), 14 deletions(-)
+
+diff --git a/modules/proxy/proxy_util.c b/modules/proxy/proxy_util.c
+index cbf8826777..b131ec07f6 100644
+--- a/modules/proxy/proxy_util.c
++++ b/modules/proxy/proxy_util.c
+@@ -1532,6 +1532,13 @@ static apr_status_t connection_cleanup(void *theconn)
+         socket_cleanup(conn);
+         conn->close = 0;
+     }
++    else if (conn->is_ssl) {
++        /* Unbind/reset the SSL connection dir config (sslconn->dc) from
++         * r->per_dir_config, r will likely get destroyed before this proxy
++         * conn is reused.
++         */
++        ap_proxy_ssl_engine(conn->connection, worker->section_config, 1);
++    }
+ 
+     if (worker->s->hmax && worker->cp->res) {
+         conn->inreslist = 1;
+@@ -3172,6 +3179,12 @@ static int proxy_connection_create(const char *proxy_function,
+     apr_bucket_alloc_t *bucket_alloc;
+ 
+     if (conn->connection) {
++        if (conn->is_ssl) {
++            /* on reuse, reinit the SSL connection dir config with the current
++             * r->per_dir_config, the previous one was reset on release.
++             */
++            ap_proxy_ssl_engine(conn->connection, per_dir_config, 1);
++        }
+         return OK;
+     }
+ 
+diff --git a/modules/ssl/mod_ssl.c b/modules/ssl/mod_ssl.c
+index 4797c78bb9..e857f50647 100644
+--- a/modules/ssl/mod_ssl.c
++++ b/modules/ssl/mod_ssl.c
+@@ -442,17 +442,20 @@ static int ssl_hook_pre_config(apr_pool_t *pconf,
+ }
+ 
+ static SSLConnRec *ssl_init_connection_ctx(conn_rec *c,
+-                                           ap_conf_vector_t *per_dir_config)
++                                           ap_conf_vector_t *per_dir_config,
++                                           int new_proxy)
+ {
+     SSLConnRec *sslconn = myConnConfig(c);
+-    SSLSrvConfigRec *sc;
++    int need_setup = 0;
+ 
+-    if (sslconn) {
+-        return sslconn;
++    if (!sslconn) {
++        sslconn = apr_pcalloc(c->pool, sizeof(*sslconn));
++        need_setup = 1;
+     }
+ 
+-    sslconn = apr_pcalloc(c->pool, sizeof(*sslconn));
+-
++    /* Reinit dc in any case because it may be r->per_dir_config scoped
++     * and thus a caller like mod_proxy needs to update it per request.
++     */
+     if (per_dir_config) {
+         sslconn->dc = ap_get_module_config(per_dir_config, &ssl_module);
+     }
+@@ -461,12 +464,20 @@ static SSLConnRec *ssl_init_connection_ctx(conn_rec *c,
+                                            &ssl_module);
+     }
+ 
+-    sslconn->server = c->base_server;
+-    sslconn->verify_depth = UNSET;
+-    sc = mySrvConfig(c->base_server);
+-    sslconn->cipher_suite = sc->server->auth.cipher_suite;
++    if (need_setup) {
++        sslconn->server = c->base_server;
++        sslconn->verify_depth = UNSET;
++        if (new_proxy) {
++            sslconn->is_proxy = 1;
++            sslconn->cipher_suite = sslconn->dc->proxy->auth.cipher_suite;
++        }
++        else {
++            SSLSrvConfigRec *sc = mySrvConfig(c->base_server);
++            sslconn->cipher_suite = sc->server->auth.cipher_suite;
++        }
+ 
+-    myConnConfigSet(c, sslconn);
++        myConnConfigSet(c, sslconn);
++    }
+ 
+     return sslconn;
+ }
+@@ -507,8 +518,7 @@ static int ssl_engine_set(conn_rec *c,
+     int status;
+     
+     if (proxy) {
+-        sslconn = ssl_init_connection_ctx(c, per_dir_config);
+-        sslconn->is_proxy = 1;
++        sslconn = ssl_init_connection_ctx(c, per_dir_config, 1);
+     }
+     else {
+         sslconn = myConnConfig(c);
+@@ -555,7 +565,7 @@ int ssl_init_ssl_connection(conn_rec *c, request_rec *r)
+     /*
+      * Create or retrieve SSL context
+      */
+-    sslconn = ssl_init_connection_ctx(c, r ? r->per_dir_config : NULL);
++    sslconn = ssl_init_connection_ctx(c, r ? r->per_dir_config : NULL, 0);
+     server = sslconn->server;
+     sc = mySrvConfig(server);
+ 
+-- 
+2.19.1
+

@@ -1,0 +1,37 @@
+From 7e6e9c0a7b9653af14ddce21c9cebf9765c70823 Mon Sep 17 00:00:00 2001
+From: Christophe Jaillet <jailletc36@apache.org>
+Date: Fri, 15 Feb 2019 16:06:24 +0000
+Subject: [PATCH 391/504] Merge r1851093 from trunk
+
+   * mod_proxy_wstunnel: Fix websocket proxy over UDS.
+
+PR: 62932
+Submitted by: <pavel dcmsys.com>
+Reviewed by: jailletc36 (by inspection), jim, ylavic
+Backported by: jailletc36
+
+git-svn-id: https://svn.apache.org/repos/asf/httpd/httpd/branches/2.4.x@1853654 13f79535-47bb-0310-9956-ffa450edef68
+---
+ modules/aaa/mod_authn_dbm.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/modules/aaa/mod_authn_dbm.c b/modules/aaa/mod_authn_dbm.c
+index f4fb73672e..6eae9e052a 100644
+--- a/modules/aaa/mod_authn_dbm.c
++++ b/modules/aaa/mod_authn_dbm.c
+@@ -102,7 +102,11 @@ static apr_status_t fetch_dbm_value(const char *dbmtype, const char *dbmfile,
+ 
+     apr_dbm_close(f);
+ 
+-    return rv;
++    /* NOT FOUND is not an error case; this is indicated by a NULL result.
++     * Treat all NULL lookup/error results as success for the simple case 
++     * of auth credential lookup, these are DECLINED in both cases.
++     */
++    return APR_SUCCESS;
+ }
+ 
+ static authn_status check_dbm_pw(request_rec *r, const char *user,
+-- 
+2.19.1
+
