@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.34
-Release:          12
+Release:          13
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -53,7 +53,6 @@ Source44:         httpd@.service
 Patch0001:        httpd-2.4.1-apctl.patch
 Patch0002:        httpd-2.4.9-apxs.patch
 Patch0003:        httpd-2.4.1-deplibs.patch
-Patch0004:        httpd-2.4.34-layfix.patch
 Patch0006:        httpd-2.4.3-apctl-systemd.patch
 Patch0019:        httpd-2.4.25-detect-systemd.patch
 Patch0021:        httpd-2.4.33-mddefault.patch
@@ -536,6 +535,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Sat Jan 11 2020 openEuler Buildteam <buildteam@openeuler.org> - 2.4.34-13
+- Type:NA
+- ID:NA
+- SUG:NA
+- DESC:delete patches
+
 * Wed Dec 25 2019 openEuler Buildteam <buildteam@openeuler.org> - 2.4.34-12
 - Type:bugfix
 - ID:NA
