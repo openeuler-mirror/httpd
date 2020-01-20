@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.34
-Release:          13
+Release:          14
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -535,6 +535,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Sun Jan 19 2020 openEuler Buildteam <buildteam@openeuler.org> - 2.4.34-14
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:add SSLCipherSuite 
+
 * Sat Jan 11 2020 openEuler Buildteam <buildteam@openeuler.org> - 2.4.34-13
 - Type:NA
 - ID:NA
