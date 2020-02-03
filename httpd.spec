@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.34
-Release:          14
+Release:          15
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -97,6 +97,7 @@ Patch6022:        CVE-2018-17189.patch
 Patch6023:        CVE-2019-0220-1.patch
 Patch6024:        CVE-2019-0220-2.patch
 Patch6025:        CVE-2019-0220-3.patch 
+Patch6026:        CVE-2018-17199.patch
 
 Patch9000:        layout_add_openEuler.patch
 
@@ -535,6 +536,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Mon Feb 03 2020 yanzhihua <yanzhihua4@huawei.com> - 2.4.34-15
+- Type:cves
+- ID:CVE-2018-17199
+- SUG:NA
+- DESC:fix CVE-2018-17199
+
 * Sun Jan 19 2020 openEuler Buildteam <buildteam@openeuler.org> - 2.4.34-14
 - Type:bugfix
 - ID:NA
