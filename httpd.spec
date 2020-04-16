@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.34
-Release:          15
+Release:          16
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -98,6 +98,12 @@ Patch6023:        CVE-2019-0220-1.patch
 Patch6024:        CVE-2019-0220-2.patch
 Patch6025:        CVE-2019-0220-3.patch 
 Patch6026:        CVE-2018-17199.patch
+Patch6027:        CVE-2019-10092-1.patch
+Patch6028:        CVE-2019-10092-2.patch
+Patch6029:        CVE-2019-10098.patch
+Patch6030:        CVE-2019-0196.patch
+Patch6031:        CVE-2019-0197.patch
+Patch6032:        CVE-2019-10097.patch
 
 Patch9000:        layout_add_openEuler.patch
 
@@ -536,6 +542,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Wed Apr 15 2020 chenzhen <chenzhen44@huawei.com> - 2.4.34-16
+- Type:cves
+- ID:CVE-2019-10092 CVE-2019-10097 CVE-2019-10098 CVE-2019-0196 CVE-2019-0197
+- SUG:NA
+- DESC:fix CVE-2019-10092 CVE-2019-10097 CVE-2019-10098 CVE-2019-0196 CVE-2019-0197
+
 * Mon Feb 03 2020 yanzhihua <yanzhihua4@huawei.com> - 2.4.34-15
 - Type:cves
 - ID:CVE-2018-17199
