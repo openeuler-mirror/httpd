@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.34
-Release:          16
+Release:          17
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -104,6 +104,14 @@ Patch6029:        CVE-2019-10098.patch
 Patch6030:        CVE-2019-0196.patch
 Patch6031:        CVE-2019-0197.patch
 Patch6032:        CVE-2019-10097.patch
+Patch6033:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-1.patch
+Patch6034:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-2.patch
+Patch6035:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-3.patch
+Patch6036:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-4.patch
+Patch6037:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-5.patch
+Patch6038:        CVE-2020-1927-1.patch
+Patch6039:        CVE-2020-1927-2.patch
+Patch6040:        CVE-2020-1934.patch
 
 Patch9000:        layout_add_openEuler.patch
 
@@ -542,6 +550,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Thu Apr 23 2020 openEuler Buildteam <buildteam@openeuler.org> - 2.4.34-17
+- Type:cves
+- ID:CVE-2019-9517 CVE-2019-10081 CVE-2019-10082 CVE-2020-1927 CVE-2020-1934
+- SUG:restart
+- DESC:fix CVE-2019-9517 CVE-2019-10081 CVE-2019-10082 CVE-2020-1927 CVE-2020-1934
+
 * Wed Apr 15 2020 chenzhen <chenzhen44@huawei.com> - 2.4.34-16
 - Type:cves
 - ID:CVE-2019-10092 CVE-2019-10097 CVE-2019-10098 CVE-2019-0196 CVE-2019-0197
