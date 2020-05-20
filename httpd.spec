@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.34
-Release:          17
+Release:          18
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -550,6 +550,9 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Mon May 18 2020 wangchen <wangchen137@huawei.com> - 2.4.34-18
+- rebuild for httpd
+
 * Thu Apr 23 2020 openEuler Buildteam <buildteam@openeuler.org> - 2.4.34-17
 - Type:cves
 - ID:CVE-2019-9517 CVE-2019-10081 CVE-2019-10082 CVE-2020-1927 CVE-2020-1934
