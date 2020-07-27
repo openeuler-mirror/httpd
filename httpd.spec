@@ -7,8 +7,8 @@
 
 Name:             httpd
 Summary:          Apache HTTP Server
-Version:          2.4.34
-Release:          17
+Version:          2.4.43
+Release:          1
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -55,63 +55,15 @@ Patch0002:        httpd-2.4.9-apxs.patch
 Patch0003:        httpd-2.4.1-deplibs.patch
 Patch0006:        httpd-2.4.3-apctl-systemd.patch
 Patch0019:        httpd-2.4.25-detect-systemd.patch
-Patch0021:        httpd-2.4.33-mddefault.patch
 Patch0023:        httpd-2.4.33-export.patch
 Patch0024:        httpd-2.4.1-corelimit.patch
 Patch0025:        httpd-2.4.25-selinux.patch
 Patch0027:        httpd-2.4.2-icons.patch
-Patch0029:        httpd-2.4.33-systemd.patch
 Patch0030:        httpd-2.4.4-cachehardmax.patch
 Patch0034:        httpd-2.4.17-socket-activation.patch
-Patch0036:        httpd-2.4.33-r1830819+.patch
-Patch0037:        httpd-2.4.34-r1827912+.patch
 Patch0038:        httpd-2.4.34-sslciphdefault.patch
 Patch0039:        httpd-2.4.34-sslprotdefault.patch
-Patch0058:        httpd-2.4.34-r1738878.patch
-Patch0059:        httpd-2.4.34-r1555631.patch
 Patch0060:        httpd-2.4.34-enable-sslv3.patch
-
-Patch6000:        CVE-2018-11763.patch
-Patch6001:        On-the-2.4.x-branch.patch
-Patch6002:        Merge-r1418761-r1418765-r1510295-r1757147-r1805163-r.patch
-Patch6003:        Merge-r1837130-from-trunk.patch
-Patch6004:        mod_proxy_hcheck-Fix-issues-with-TCP-health-checks.-.patch
-Patch6005:        mod_proxy_hcheck-Fix-issues-with-interval-determinat.patch
-Patch6006:        MPMs-Initialize-all-runtime-asynchronous-objects-on-.patch
-Patch6007:        Merge-r1842540-from-trunk.patch
-Patch6008:        mod_ssl-We-need-to-get-the-SSL_CTX-for-further-proce.patch
-Patch6009:        Merge-r1837250-from-trunk.patch
-Patch6010:        mod_ssl-Fixes-PR-62880-where-certificate-loading-fai.patch
-Patch6011:        mod_ssl-Fixes-PR-62654-where-require-ssl-did-not-wor.patch
-Patch6012:        Merge-r1831773-from-trunk.patch
-Patch6013:        mod_negotiation-LanguagePriority-tags-must-be-treate.patch
-Patch6014:        mod_ssl-ssl_engine_io.c-bio_filter_out_write-bio_fil.patch
-Patch6015:        Merge-of-r1853133-r1853166-from-trunk.patch
-Patch6016:        Merge-r1851093-from-trunk1.patch
-Patch6017:        Merge-r1851093-from-trunk2.patch
-Patch6018:        Merge-r1853190-from-trunk.patch
-Patch6019:        Merge-r1855646-r1855748-from-trunk.patch
-Patch6020:        CVE-2019-0211.patch
-Patch6021:        CVE-2019-0215.patch
-Patch6022:        CVE-2018-17189.patch
-Patch6023:        CVE-2019-0220-1.patch
-Patch6024:        CVE-2019-0220-2.patch
-Patch6025:        CVE-2019-0220-3.patch 
-Patch6026:        CVE-2018-17199.patch
-Patch6027:        CVE-2019-10092-1.patch
-Patch6028:        CVE-2019-10092-2.patch
-Patch6029:        CVE-2019-10098.patch
-Patch6030:        CVE-2019-0196.patch
-Patch6031:        CVE-2019-0197.patch
-Patch6032:        CVE-2019-10097.patch
-Patch6033:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-1.patch
-Patch6034:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-2.patch
-Patch6035:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-3.patch
-Patch6036:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-4.patch
-Patch6037:        CVE-2019-9517_CVE-2019-10081_CVE-2019-10082-5.patch
-Patch6038:        CVE-2020-1927-1.patch
-Patch6039:        CVE-2020-1927-2.patch
-Patch6040:        CVE-2020-1934.patch
 
 Patch9000:        layout_add_openEuler.patch
 
@@ -255,7 +207,7 @@ export LYNX_PATH=/usr/bin/links
    --enable-mods-shared=all --enable-ssl --with-ssl --disable-distcache \
    --enable-proxy --enable-proxy-fdpass --enable-cache --enable-disk-cache \
    --enable-ldap --enable-authnz-ldap --enable-cgid --enable-cgi \
-   --enable-authn-anon --enable-authn-alias \
+   --enable-authn-anon --enable-authn-alias --enable-systemd \
    --disable-imagemap --disable-file-cache --disable-http2 $*
 
 %make_build
@@ -550,6 +502,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Fri Jul 24 2020 zhujunhao <zhujunhao8@huawei.com> - 2.4.43-1
+- Type:NA
+- ID:NA
+- SUG:NA
+- DESC:Update to 2.4.43
+
 * Thu Apr 23 2020 openEuler Buildteam <buildteam@openeuler.org> - 2.4.34-17
 - Type:cves
 - ID:CVE-2019-9517 CVE-2019-10081 CVE-2019-10082 CVE-2020-1927 CVE-2020-1934
