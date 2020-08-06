@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.43
-Release:          1
+Release:          2
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -50,22 +50,22 @@ Source42:         httpd-init.service
 Source43:         httpd-ssl-gencerts
 Source44:         httpd@.service
 
-Patch0001:        httpd-2.4.1-apctl.patch
-Patch0002:        httpd-2.4.9-apxs.patch
-Patch0003:        httpd-2.4.1-deplibs.patch
-Patch0006:        httpd-2.4.3-apctl-systemd.patch
-Patch0019:        httpd-2.4.25-detect-systemd.patch
-Patch0023:        httpd-2.4.33-export.patch
-Patch0024:        httpd-2.4.1-corelimit.patch
-Patch0025:        httpd-2.4.25-selinux.patch
-Patch0027:        httpd-2.4.2-icons.patch
-Patch0030:        httpd-2.4.4-cachehardmax.patch
-Patch0034:        httpd-2.4.17-socket-activation.patch
-Patch0038:        httpd-2.4.34-sslciphdefault.patch
-Patch0039:        httpd-2.4.34-sslprotdefault.patch
-Patch0060:        httpd-2.4.34-enable-sslv3.patch
-
-Patch9000:        layout_add_openEuler.patch
+Patch0:           httpd-2.4.1-apctl.patch
+Patch1:           httpd-2.4.9-apxs.patch
+Patch2:           httpd-2.4.1-deplibs.patch
+Patch3:           httpd-2.4.3-apctl-systemd.patch
+Patch4:           httpd-2.4.25-detect-systemd.patch
+Patch5:           httpd-2.4.33-export.patch
+Patch6:           httpd-2.4.1-corelimit.patch
+Patch7:           httpd-2.4.25-selinux.patch
+Patch8:           httpd-2.4.2-icons.patch
+Patch9:           httpd-2.4.4-cachehardmax.patch
+Patch10:          httpd-2.4.17-socket-activation.patch
+Patch11:          httpd-2.4.34-sslciphdefault.patch
+Patch12:          httpd-2.4.34-sslprotdefault.patch
+Patch13:          httpd-2.4.34-enable-sslv3.patch
+Patch14:          layout_add_openEuler.patch
+Patch15:          httpd-2.4.43-lua-resume.patch 
 
 BuildRequires:    gcc autoconf pkgconfig findutils xmlto perl-interpreter perl-generators systemd-devel
 BuildRequires:    zlib-devel libselinux-devel lua-devel brotli-devel
@@ -502,6 +502,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Thu Aug 06 2020 gaihuiying <gaihuiying1@huawei.com> - 2.4.43-2
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:fix build error
+
 * Fri Jul 24 2020 zhujunhao <zhujunhao8@huawei.com> - 2.4.43-1
 - Type:NA
 - ID:NA
