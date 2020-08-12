@@ -513,6 +513,8 @@ exit $rv
 - ID:NA
 - SUG:NA
 - DESC:Update to 2.4.43
+* Mon May 18 2020 wangchen <wangchen137@huawei.com> - 2.4.34-18
+- rebuild for httpd
 
 * Thu Apr 23 2020 openEuler Buildteam <buildteam@openeuler.org> - 2.4.34-17
 - Type:cves
