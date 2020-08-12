@@ -513,6 +513,7 @@ exit $rv
 - ID:NA
 - SUG:NA
 - DESC:Update to 2.4.43
+
 * Mon May 18 2020 wangchen <wangchen137@huawei.com> - 2.4.34-18
 - rebuild for httpd
 
