@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.43
-Release:          2
+Release:          1
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -502,13 +502,7 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
-* Thu Aug 06 2020 gaihuiying <gaihuiying1@huawei.com> - 2.4.43-2
-- Type:bugfix
-- ID:NA
-- SUG:NA
-- DESC:fix build error
-
-* Fri Jul 24 2020 zhujunhao <zhujunhao8@huawei.com> - 2.4.43-1
+* Wed Aug 26 2020 yuboyun <yuboyun@huawei.com> - 2.4.43-1
 - Type:NA
 - ID:NA
 - SUG:NA
