@@ -8,10 +8,10 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.43
-Release:          2
+Release:          3
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
-Source0:          https://www.apache.org/dist/httpd/httpd-%{version}.tar.bz2
+Source0:          https://archive.apache.org/dist/httpd/httpd-%{version}.tar.bz2
 Source1:          index.html
 Source2:          httpd.logrotate
 Source3:          instance.conf
@@ -502,6 +502,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Sat Sep 5 2020 zhaowei<zhaowei23@huawei.com> - 2.4.43-3
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: update source URL
+
 * Thu Aug 06 2020 gaihuiying <gaihuiying1@huawei.com> - 2.4.43-2
 - Type:bugfix
 - ID:NA
