@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.43
-Release:          3
+Release:          4
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://archive.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -66,6 +66,9 @@ Patch12:          httpd-2.4.34-sslprotdefault.patch
 Patch13:          httpd-2.4.34-enable-sslv3.patch
 Patch14:          layout_add_openEuler.patch
 Patch15:          httpd-2.4.43-lua-resume.patch 
+Patch16:	  CVE-2020-11984.patch
+Patch17:	  CVE-2020-11993.patch
+Patch18:	  CVE-2020-9490.patch
 
 BuildRequires:    gcc autoconf pkgconfig findutils xmlto perl-interpreter perl-generators systemd-devel
 BuildRequires:    zlib-devel libselinux-devel lua-devel brotli-devel
@@ -502,6 +505,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Sun Sep 27 2020 yuboyun <yuboyun@huawei.com> - 2.4.43-4
+- Type:cves
+- ID:CVE-2020-9490 CVE-2020-11984 CVE-2020-11993
+- SUG:restart
+- DESC:fix CVE-2020-9490 CVE-2020-11984 CVE-2020-11993
+
 * Sat Sep 5 2020 zhaowei<zhaowei23@huawei.com> - 2.4.43-3
 - Type:enhancement
 - ID:NA
