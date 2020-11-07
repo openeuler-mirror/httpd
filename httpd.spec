@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.43
-Release:          3
+Release:          4
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://archive.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -73,7 +73,7 @@ Patch18:          CVE-2020-9490.patch
 BuildRequires:    gcc autoconf pkgconfig findutils xmlto perl-interpreter perl-generators systemd-devel
 BuildRequires:    zlib-devel libselinux-devel lua-devel brotli-devel
 BuildRequires:    apr-devel >= 1.5.0 apr-util-devel >= 1.5.0 pcre-devel >= 5.0
-Requires:         mailcap system-logos mod_http2
+Requires:         mailcap system-logos mod_http2 %{name}-help
 Requires:         httpd-tools = %{version}-%{release} httpd-filesystem = %{version}-%{release}
 Requires(pre):    httpd-filesystem
 Requires(preun):  systemd-units
@@ -505,6 +505,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Mon Nov 09 2020 quanhongfei <quanhongfei@huawei.com> - 2.4.43-4
+- Type:requirement
+- ID:NA
+- SUG:NA
+- DESC:add httpd-help dependency for httpd
+
 * Sun Sep 27 2020 yuboyun <yuboyun@huawei.com> - 2.4.43-3
 - Type:cves
 - ID:CVE-2020-9490 CVE-2020-11984 CVE-2020-11993
