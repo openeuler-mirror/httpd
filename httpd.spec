@@ -7,8 +7,8 @@
 
 Name:             httpd
 Summary:          Apache HTTP Server
-Version:          2.4.43
-Release:          4
+Version:          2.4.46
+Release:          1
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://archive.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -54,7 +54,7 @@ Patch0:           httpd-2.4.1-apctl.patch
 Patch1:           httpd-2.4.9-apxs.patch
 Patch2:           httpd-2.4.1-deplibs.patch
 Patch3:           httpd-2.4.3-apctl-systemd.patch
-Patch4:           httpd-2.4.25-detect-systemd.patch
+Patch4:           httpd-2.4.43-detect-systemd.patch
 Patch5:           httpd-2.4.33-export.patch
 Patch6:           httpd-2.4.1-corelimit.patch
 Patch7:           httpd-2.4.25-selinux.patch
@@ -65,10 +65,11 @@ Patch11:          httpd-2.4.34-sslciphdefault.patch
 Patch12:          httpd-2.4.34-sslprotdefault.patch
 Patch13:          httpd-2.4.34-enable-sslv3.patch
 Patch14:          layout_add_openEuler.patch
-Patch15:          httpd-2.4.43-lua-resume.patch 
-Patch16:	  CVE-2020-11984.patch
-Patch17:	  CVE-2020-11993.patch
-Patch18:	  CVE-2020-9490.patch
+Patch15:          httpd-2.4.46-lua-resume.patch 
+Patch16:          httpd-2.4.43-gettid.patch
+Patch17:          httpd-2.4.43-r1861793+.patch
+Patch18:          httpd-2.4.43-r1828172+.patch 
+Patch19:          httpd-2.4.46-htcacheclean-dont-break.patch 
 
 BuildRequires:    gcc autoconf pkgconfig findutils xmlto perl-interpreter perl-generators systemd-devel
 BuildRequires:    zlib-devel libselinux-devel lua-devel brotli-devel
@@ -355,10 +356,6 @@ exit 0
 %postun
 %systemd_postun httpd.service htcacheclean.service httpd.socket
 
-%triggerun -- httpd < 2.2.21-5
-/usr/bin/systemd-sysv-convert --save httpd.service >/dev/null 2>&1 ||:
-/sbin/chkconfig --del httpd >/dev/null 2>&1 || :
-
 %posttrans
 test -f /etc/sysconfig/httpd-disable-posttrans || \
   /bin/systemctl try-restart --no-block httpd.service htcacheclean.service >/dev/null 2>&1 || :
@@ -505,6 +502,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Tue Jan 26 2021 xihaochen<xihaochen@huawei.com> - 2.4.46-1
+- Type:requirements
+- ID:NA
+- SUG:NA
+- DESC: update httpd to 2.4.46
+
 * Sun Sep 27 2020 yuboyun <yuboyun@huawei.com> - 2.4.43-4
 - Type:cves
 - ID:CVE-2020-9490 CVE-2020-11984 CVE-2020-11993
