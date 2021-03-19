@@ -1,0 +1,30 @@
+From 228071897c6094f4d86331b4aee38d87104c144f Mon Sep 17 00:00:00 2001
+From: Roberto Sassu <roberto.sassu@huawei.com>
+Date: Mon, 8 Mar 2021 13:44:46 +0100
+Subject: [PATCH] Pass key IDs with the tpm2: prefix to the tpm2 engine
+
+Following the behavior applied for key IDs with the pkcs11: prefix, this
+patch simply changes modssl_is_engine_id() to pass key IDs with the tpm2:
+prefix to the tpm2 openssl engine.
+
+Signed-off-by: Roberto Sassu <roberto.sassu@huawei.com>
+---
+ modules/ssl/ssl_util.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules/ssl/ssl_util.c b/modules/ssl/ssl_util.c
+index 7de6f57d44..daf3ca85fb 100644
+--- a/modules/ssl/ssl_util.c
++++ b/modules/ssl/ssl_util.c
+@@ -502,7 +502,7 @@ int modssl_is_engine_id(const char *name)
+ {
+ #if defined(HAVE_OPENSSL_ENGINE_H) && defined(HAVE_ENGINE_INIT)
+     /* ### Can handle any other special ENGINE key names here? */
+-    return strncmp(name, "pkcs11:", 7) == 0;
++    return (strncmp(name, "pkcs11:", 7) == 0 || strncmp(name, "tpm2:", 5) == 0);
+ #else
+     return 0;
+ #endif
+-- 
+2.26.2
+

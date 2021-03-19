@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.46
-Release:          1
+Release:          2
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://archive.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -70,6 +70,7 @@ Patch16:          httpd-2.4.43-gettid.patch
 Patch17:          httpd-2.4.43-r1861793+.patch
 Patch18:          httpd-2.4.43-r1828172+.patch 
 Patch19:          httpd-2.4.46-htcacheclean-dont-break.patch 
+Patch20:          Pass-key-IDs-with-the-tpm2-prefix-to-the-tpm2-engine.patch
 
 BuildRequires:    gcc autoconf pkgconfig findutils xmlto perl-interpreter perl-generators systemd-devel
 BuildRequires:    zlib-devel libselinux-devel lua-devel brotli-devel
@@ -345,6 +346,7 @@ getent group apache >/dev/null || groupadd -g 48 -r apache
 getent passwd apache >/dev/null || \
   useradd -r -u 48 -g apache -s /sbin/nologin \
     -d %{contentdir} -c "Apache" apache
+getent group tss >/dev/null && gpasswd -a apache tss
 exit 0
 
 %post
@@ -502,6 +504,9 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Mon Mar 8 2021 Roberto Sassu <roberto.sassu@huawei.com> - 2.4.46-2
+- Add Pass-key-IDs-with-the-tpm2-prefix-to-the-tpm2-engine.patch
+
 * Tue Jan 26 2021 xihaochen<xihaochen@huawei.com> - 2.4.46-1
 - Type:requirements
 - ID:NA
