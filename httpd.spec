@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.46
-Release:          2
+Release:          3
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://archive.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -504,8 +504,17 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Fri Mar 19 2021 Roberto Sassu <roberto.sassu@huawei.com> - 2.4.46-3
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: add env variables for the tpm2 engine in httpd.service
+
 * Mon Mar 8 2021 Roberto Sassu <roberto.sassu@huawei.com> - 2.4.46-2
-- Add Pass-key-IDs-with-the-tpm2-prefix-to-the-tpm2-engine.patch
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: pass key IDs with the tpm2: prefix to the tpm2 engine
 
 * Tue Jan 26 2021 xihaochen<xihaochen@huawei.com> - 2.4.46-1
 - Type:requirements

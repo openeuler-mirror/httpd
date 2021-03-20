@@ -20,6 +20,9 @@ Documentation=man:httpd.service(8)
 [Service]
 Type=notify
 Environment=LANG=C
+Environment=XDG_RUNTIME_DIR=/tmp
+Environment=XDG_RUNTIME_DIR_OWNER=apache
+Environment=XDG_RUNTIME_DIR_GROUP=apache
 
 ExecStart=/usr/sbin/httpd $OPTIONS -DFOREGROUND
 ExecReload=/usr/sbin/httpd $OPTIONS -k graceful
