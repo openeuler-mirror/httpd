@@ -8,7 +8,7 @@
 Name:             httpd
 Summary:          Apache HTTP Server
 Version:          2.4.46
-Release:          1
+Release:          2
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://archive.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -70,6 +70,7 @@ Patch16:          httpd-2.4.43-gettid.patch
 Patch17:          httpd-2.4.43-r1861793+.patch
 Patch18:          httpd-2.4.43-r1828172+.patch 
 Patch19:          httpd-2.4.46-htcacheclean-dont-break.patch 
+Patch20:          CVE-2021-26691.patch 
 
 BuildRequires:    gcc autoconf pkgconfig findutils xmlto perl-interpreter perl-generators systemd-devel
 BuildRequires:    zlib-devel libselinux-devel lua-devel brotli-devel
@@ -502,6 +503,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Wed Jun 16 2021 yanglu <yanglu72@huawei.com> - 2.4.46-2
+- Type:cves
+- ID:CVE-2021-26691
+- SUG:NA
+- DESC:fix CVE-2021-26691
+
 * Tue Jan 26 2021 xihaochen<xihaochen@huawei.com> - 2.4.46-1
 - Type:requirements
 - ID:NA
