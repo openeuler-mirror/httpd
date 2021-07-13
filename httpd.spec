@@ -7,8 +7,8 @@
 
 Name:             httpd
 Summary:          Apache HTTP Server
-Version:          2.4.46
-Release:          5
+Version:          2.4.48
+Release:          1
 License:          ASL 2.0
 URL:              https://httpd.apache.org/
 Source0:          https://archive.apache.org/dist/httpd/httpd-%{version}.tar.bz2
@@ -65,16 +65,10 @@ Patch11:          httpd-2.4.34-sslciphdefault.patch
 Patch12:          httpd-2.4.34-sslprotdefault.patch
 Patch13:          httpd-2.4.34-enable-sslv3.patch
 Patch14:          layout_add_openEuler.patch
-Patch15:          httpd-2.4.46-lua-resume.patch 
 Patch16:          httpd-2.4.43-gettid.patch
 Patch17:          httpd-2.4.43-r1861793+.patch
 Patch18:          httpd-2.4.43-r1828172+.patch 
 Patch19:          httpd-2.4.46-htcacheclean-dont-break.patch 
-Patch20:          CVE-2021-26691.patch 
-Patch21:          CVE-2020-13950.patch 
-Patch22:          CVE-2020-35452.patch 
-Patch23:          CVE-2021-30641.patch
-Patch24:          CVE-2021-26690.patch
 
 BuildRequires:    gcc autoconf pkgconfig findutils xmlto perl-interpreter perl-generators systemd-devel
 BuildRequires:    zlib-devel libselinux-devel lua-devel brotli-devel
@@ -507,6 +501,12 @@ exit $rv
 %{_rpmconfigdir}/macros.d/macros.httpd
 
 %changelog
+* Tue Jul 13 2021 gaihuiying<gaihuiying1@huawei.com> - 2.4.48-1
+- Type:requirement
+- ID:NA
+- SUG:NA
+- DESC:update to 2.4.48
+
 * Wed Jun 23 2021 gaihuiying <gaihuiying1@huawei.com> - 2.4.46-5
 - Type:cves
 - ID:CVE-2021-26690
